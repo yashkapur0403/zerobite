@@ -1,0 +1,12 @@
+[
+  { "id": 1, "name": "FoodAid Trust", "location": "C-Scheme, Jaipur", "distanceKm": 2.5, "capacity": 80, "foodType": "Cooked Meals" },
+  { "id": 2, "name": "HungerFree", "location": "Vaishali Nagar", "distanceKm": 5.2, "capacity": 50, "foodType": "Dry Rations" },
+  { "id": 3, "name": "Share & Care", "location": "Malviya Nagar", "distanceKm": 8.7, "capacity": 120, "foodType": "Cooked Meals" },
+  { "id": 4, "name": "Community Plate", "location": "Mansarovar", "distanceKm": 3.1, "capacity": 40, "foodType": "Bakery" },
+  { "id": 5, "name": "Neighborhood Kitchens", "location": "JLN Marg", "distanceKm": 1.8, "capacity": 30, "foodType": "Cooked Meals" },
+  { "id": 6, "name": "Jaipur Relief", "location": "Raja Park", "distanceKm": 4.0, "capacity": 60, "foodType": "Fruits & Veg" },
+  { "id": 7, "name": "Seva Bhoj", "location": "Bani Park", "distanceKm": 3.6, "capacity": 90, "foodType": "Cooked Meals" },
+  { "id": 8, "name": "Care Cart", "location": "Ajmer Road", "distanceKm": 6.3, "capacity": 45, "foodType": "Bakery" },
+  { "id": 9, "name": "Annapurna Welfare", "location": "Sodala", "distanceKm": 2.9, "capacity": 70, "foodType": "Dry Rations" },
+  { "id": 10, "name": "Nayi Disha", "location": "Tonk Road", "distanceKm": 5.8, "capacity": 55, "foodType": "Cooked Meals" }
+]
