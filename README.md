@@ -230,7 +230,8 @@ This project is developed for educational purposes as part of SE Lab coursework.
 
 ## 👥 Contributors
 
-- Your Team Members Here
+- Yash Kapur
+- Aaditya Upadhyay
 
 ## 📞 Support
 
