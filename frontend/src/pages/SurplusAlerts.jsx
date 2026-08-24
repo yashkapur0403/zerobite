@@ -1,27 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from '../components/Toast.jsx'
 import { collection, onSnapshot, addDoc, doc, updateDoc, serverTimestamp, getDocs, deleteDoc, setDoc } from 'firebase/firestore'
-import { db } from '../firebase'
+import { db, DEMO_MODE } from '../firebase'
 import { useAuth } from '../context/AuthContext.jsx'
 import seedSurplus from '../data/surplus.json'
 import seedNgos from '../data/ngos.json'
 
+const makeSeedItems = () => seedSurplus.map((s, i) => ({ ...s, id: `local-${i}` }))
+
 export default function SurplusAlerts() {
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState(DEMO_MODE ? makeSeedItems() : [])
   const [accepted, setAccepted] = useState([])
-  const [tab, setTab] = useState('active') // 'active' | 'accepted'
+  const [tab, setTab] = useState('active')
   const [foodFilter, setFoodFilter] = useState('All')
   const { profile } = useAuth()
 
-  // Subscribe to Firestore collections
   useEffect(() => {
+    if (DEMO_MODE) return // seed already set in useState
+
     const unsubSurplus = onSnapshot(collection(db, 'surplus'), (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setItems(all)
+      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
     const unsubAccepted = onSnapshot(collection(db, 'accepted'), (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setAccepted(list)
+      setAccepted(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
     return () => { unsubSurplus(); unsubAccepted() }
   }, [])
@@ -34,20 +35,29 @@ export default function SurplusAlerts() {
   }, [tab, active, accepted, foodFilter])
 
   const accept = async (surplusId) => {
-    try {
-      const item = items.find(x => x.id === surplusId)
-      if (!item) return
-      if (item.status === 'Accepted') return
-      await updateDoc(doc(db, 'surplus', surplusId), { status: 'Accepted' })
-      await addDoc(collection(db, 'accepted'), {
-        surplusId,
-        donor: item.donor,
-        location: item.location,
-        foodType: item.foodType,
+    const item = items.find(x => x.id === surplusId)
+    if (!item || item.status === 'Accepted') return
+
+    if (DEMO_MODE) {
+      setItems(prev => prev.map(x => x.id === surplusId ? { ...x, status: 'Accepted' } : x))
+      setAccepted(prev => [...prev, {
+        id: `accepted-${surplusId}`, surplusId,
+        donor: item.donor, location: item.location, foodType: item.foodType,
         quantity: item.quantity ?? item.predictedSurplus ?? 0,
         predictedSurplus: item.predictedSurplus ?? item.quantity ?? 0,
-        createdAt: item.createdAt || serverTimestamp(),
-        acceptedAt: serverTimestamp(),
+        createdAt: new Date().toISOString(), acceptedAt: new Date().toISOString(),
+      }])
+      toast('Donation accepted')
+      return
+    }
+
+    try {
+      await updateDoc(doc(db, 'surplus', surplusId), { status: 'Accepted' })
+      await addDoc(collection(db, 'accepted'), {
+        surplusId, donor: item.donor, location: item.location, foodType: item.foodType,
+        quantity: item.quantity ?? item.predictedSurplus ?? 0,
+        predictedSurplus: item.predictedSurplus ?? item.quantity ?? 0,
+        createdAt: item.createdAt || serverTimestamp(), acceptedAt: serverTimestamp(),
       })
       toast('Donation accepted')
     } catch (e) {
@@ -56,10 +66,16 @@ export default function SurplusAlerts() {
   }
 
   const rejectItem = async (surplusId) => {
+    const item = items.find(x => x.id === surplusId)
+    if (!item || item.status !== 'Active') return
+
+    if (DEMO_MODE) {
+      setItems(prev => prev.map(x => x.id === surplusId ? { ...x, status: 'Rejected' } : x))
+      toast('Donation rejected')
+      return
+    }
+
     try {
-      const item = items.find(x => x.id === surplusId)
-      if (!item) return
-      if (item.status !== 'Active') return
       await updateDoc(doc(db, 'surplus', surplusId), { status: 'Rejected', rejectedAt: serverTimestamp() })
       toast('Donation rejected')
     } catch (e) {
@@ -68,61 +84,38 @@ export default function SurplusAlerts() {
   }
 
   const resetToDemo = async () => {
-    if (!profile || profile.type !== 'Admin') { 
-      toast('Admin only action', 'error')
-      return 
-    }
+    if (!profile || profile.type !== 'Admin') { toast('Admin only action', 'error'); return }
     const ok = window.confirm('Reset to demo state? This will:\n- Clear all surplus donations\n- Clear all accepted donations\n- Clear CSR stats\n- Clear NGO data\n- Reseed with fresh active sample data\n\nContinue?')
     if (!ok) return
-    
+
+    if (DEMO_MODE) {
+      setItems(makeSeedItems())
+      setAccepted([])
+      toast('✅ Demo state restored! All donations are now Active.')
+      return
+    }
+
     try {
-      // Delete all surplus
       const sSnap = await getDocs(collection(db, 'surplus'))
       await Promise.all(sSnap.docs.map(d => deleteDoc(doc(db, 'surplus', d.id))))
-      
-      // Delete all accepted
       const aSnap = await getDocs(collection(db, 'accepted'))
       await Promise.all(aSnap.docs.map(d => deleteDoc(doc(db, 'accepted', d.id))))
-      
-      // Delete all csr_stats
       const cSnap = await getDocs(collection(db, 'csr_stats'))
       await Promise.all(cSnap.docs.map(d => deleteDoc(doc(db, 'csr_stats', d.id))))
-      
-      // Delete all ngos
       const nSnap = await getDocs(collection(db, 'ngos'))
       await Promise.all(nSnap.docs.map(d => deleteDoc(doc(db, 'ngos', d.id))))
-      
-      // Reseed surplus with all Active status
       await Promise.all((seedSurplus || []).map(s => addDoc(collection(db, 'surplus'), {
-        donor: s.donor,
-        location: s.location,
-        foodType: s.foodType,
-        quantity: s.quantity,
-        predictedSurplus: s.predictedSurplus,
-        status: 'Active',
-        createdAt: serverTimestamp(),
+        donor: s.donor, location: s.location, foodType: s.foodType,
+        quantity: s.quantity, predictedSurplus: s.predictedSurplus,
+        status: 'Active', createdAt: serverTimestamp(),
       })))
-      
-      // Reseed NGOs
       console.log('Seeding NGOs:', seedNgos?.length, 'items')
       await Promise.all((seedNgos || []).map(n => addDoc(collection(db, 'ngos'), {
-        name: n.name,
-        location: n.location,
-        distanceKm: n.distanceKm,
-        capacity: n.capacity,
-        foodType: n.foodType,
-        createdAt: serverTimestamp(),
+        name: n.name, location: n.location, distanceKm: n.distanceKm,
+        capacity: n.capacity, foodType: n.foodType, createdAt: serverTimestamp(),
       })))
       console.log('NGOs seeded successfully')
-      
-      // Create default CSR stats
-      await setDoc(doc(db, 'csr_stats', 'default'), { 
-        mealsDonated: 0, 
-        co2Saved: 0, 
-        donations: 0, 
-        createdAt: serverTimestamp() 
-      })
-      
+      await setDoc(doc(db, 'csr_stats', 'default'), { mealsDonated: 0, co2Saved: 0, donations: 0, createdAt: serverTimestamp() })
       toast('✅ Demo state restored! All donations are now Active.')
     } catch (e) {
       toast('Failed to reset demo state. Please try again.', 'error')

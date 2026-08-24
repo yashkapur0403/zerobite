@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from '../components/Toast.jsx'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { db } from '../firebase'
+import { db, DEMO_MODE } from '../firebase'
+import seedNgos from '../data/ngos.json'
 
 export default function NGOMatching() {
-  const [ngos, setNgos] = useState([])
+  const [ngos, setNgos] = useState(
+    DEMO_MODE ? seedNgos.map((n, i) => ({ ...n, id: n.id ?? `ngo-${i}` })) : []
+  )
 
   useEffect(() => {
+    if (DEMO_MODE) return // seed already set in useState
+
     const unsub = onSnapshot(collection(db, 'ngos'), (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setNgos(list)
+      setNgos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
     return () => unsub()
   }, [])

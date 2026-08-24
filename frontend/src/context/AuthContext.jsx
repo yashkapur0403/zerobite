@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { onAuthStateChanged, signOut as fbSignOut } from 'firebase/auth'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { auth, db } from '../firebase'
+import { auth, db, DEMO_MODE } from '../firebase'
+
+const DEMO_USER    = { uid: 'demo-uid-001', email: 'demo@zerobite.app' }
+const DEMO_PROFILE = { id: 'demo-uid-001', name: 'Demo User', type: 'Donor', email: 'demo@zerobite.app', contact: '9876543210', address: 'Jaipur, Rajasthan' }
 
 const AuthCtx = createContext({ user: null, profile: null, loading: true, signOut: async () => {} })
 
@@ -12,6 +15,15 @@ export function AuthProvider({ children }) {
   const unsubProfileRef = useRef(null)
 
   useEffect(() => {
+    // ── DEMO MODE: no Firebase connection, resolve immediately ──
+    if (DEMO_MODE) {
+      setUser(DEMO_USER)
+      setProfile(DEMO_PROFILE)
+      setLoading(false)
+      return
+    }
+
+    // ── LIVE MODE: real Firebase Auth + Firestore listener ──
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(true)
@@ -40,7 +52,10 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
-    signOut: async () => { await fbSignOut(auth) }
+    signOut: async () => {
+      if (DEMO_MODE) return // no-op in demo mode
+      await fbSignOut(auth)
+    },
   }), [user, profile, loading])
 
   return (

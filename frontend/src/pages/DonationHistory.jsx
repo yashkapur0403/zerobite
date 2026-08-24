@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { db } from '../firebase'
+import { db, DEMO_MODE } from '../firebase'
+import seedSurplus from '../data/surplus.json'
+
+const MOCK_ACCEPTED = seedSurplus.slice(0, 10).map((s, i) => ({
+  id: `mock-hist-${i}`, donor: s.donor, location: s.location,
+  foodType: s.foodType, quantity: s.quantity, predictedSurplus: s.predictedSurplus,
+  createdAt: new Date(Date.now() - i * 7200000).toISOString(),
+  acceptedAt: new Date(Date.now() - i * 7200000 + 900000).toISOString(),
+}))
 
 export default function DonationHistory() {
-  const [accepted, setAccepted] = useState([])
+  const [accepted, setAccepted] = useState(DEMO_MODE ? MOCK_ACCEPTED : [])
 
   useEffect(() => {
+    if (DEMO_MODE) return
+
     const unsub = onSnapshot(collection(db, 'accepted'), (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setAccepted(list)
+      setAccepted(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
     return () => unsub()
   }, [])

@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { useAuth } from '../context/AuthContext.jsx'
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore'
-import { db } from '../firebase'
+import { db, DEMO_MODE } from '../firebase'
+
+const DEMO_STATS = { mealsDonated: 320, co2Saved: 134.4, monthlyGoalMeals: 500, monthlyGoalEnabled: true, donorName: 'Demo User' }
 
 export default function CSRDashboard() {
   const { user, profile } = useAuth()
-  const [stats, setStats] = useState({ mealsDonated: 0, co2Saved: 0, monthlyGoalMeals: 500, monthlyGoalEnabled: true, donorName: 'You' })
+  const [stats, setStats] = useState(DEMO_MODE ? DEMO_STATS : { mealsDonated: 0, co2Saved: 0, monthlyGoalMeals: 500, monthlyGoalEnabled: true, donorName: 'You' })
   const [goalInput, setGoalInput] = useState(500)
 
   useEffect(() => {
-    if (!user) return
+    if (DEMO_MODE || !user) return
+
     const donorName = profile?.name || user.email || 'You'
     const ref = doc(db, 'csr_stats', user.uid)
     const unsub = onSnapshot(ref, (snap) => {
@@ -33,18 +36,36 @@ export default function CSRDashboard() {
     return { done, goal, pct }
   }, [stats, totals.meals])
 
-  const chartData = useMemo(() => (
-    [
-      { name: 'Donated', value: Math.round(totals.meals) },
-      { name: 'Goal', value: Math.round((stats.monthlyGoalEnabled === false ? 0 : (stats.monthlyGoalMeals || 500))) },
-    ]
-  ), [totals.meals, stats.monthlyGoalMeals, stats.monthlyGoalEnabled])
+  const chartData = useMemo(() => ([
+    { name: 'Donated', value: Math.round(totals.meals) },
+    { name: 'Goal', value: Math.round(stats.monthlyGoalEnabled === false ? 0 : (stats.monthlyGoalMeals || 500)) },
+  ]), [totals.meals, stats.monthlyGoalMeals, stats.monthlyGoalEnabled])
 
   const badgeLevels = [
     { name: 'Bronze', threshold: 100 },
     { name: 'Silver', threshold: 300 },
     { name: 'Gold', threshold: 600 },
   ]
+
+  const saveGoalEnabled = (enabled) => {
+    setStats(prev => ({ ...prev, monthlyGoalEnabled: enabled }))
+    if (!DEMO_MODE && user) {
+      const ref = doc(db, 'csr_stats', user.uid)
+      updateDoc(ref, { monthlyGoalEnabled: enabled }).catch(async () => {
+        await setDoc(ref, { monthlyGoalEnabled: enabled }, { merge: true })
+      })
+    }
+  }
+
+  const saveGoalMeals = () => {
+    setStats(prev => ({ ...prev, monthlyGoalMeals: Math.max(0, goalInput) }))
+    if (!DEMO_MODE && user) {
+      const ref = doc(db, 'csr_stats', user.uid)
+      updateDoc(ref, { monthlyGoalMeals: Math.max(0, goalInput) }).catch(async () => {
+        await setDoc(ref, { monthlyGoalMeals: Math.max(0, goalInput) }, { merge: true })
+      })
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -74,33 +95,14 @@ export default function CSRDashboard() {
         <div className="mt-4 space-y-2">
           <div className="flex items-center gap-3">
             <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={stats.monthlyGoalEnabled !== false} onChange={(e) => {
-                const enabled = e.target.checked
-                const next = { ...stats, monthlyGoalEnabled: enabled }
-                setStats(next)
-                if (user) {
-                  const ref = doc(db, 'csr_stats', user.uid)
-                  updateDoc(ref, { monthlyGoalEnabled: enabled }).catch(async () => {
-                    await setDoc(ref, { monthlyGoalEnabled: enabled }, { merge: true })
-                  })
-                }
-              }} />
+              <input type="checkbox" checked={stats.monthlyGoalEnabled !== false} onChange={(e) => saveGoalEnabled(e.target.checked)} />
               Enable monthly goal
             </label>
             {stats.monthlyGoalEnabled !== false && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">Goal</span>
                 <input type="number" className="w-28 rounded-xl border border-gray-300 px-3 py-1 text-sm" value={goalInput} onChange={(e)=>setGoalInput(parseInt(e.target.value||0))} />
-                <button className="btn btn-outline h-8 px-3 text-sm" onClick={() => {
-                  const next = { ...stats, monthlyGoalMeals: Math.max(0, goalInput) }
-                  setStats(next)
-                  if (user) {
-                    const ref = doc(db, 'csr_stats', user.uid)
-                    updateDoc(ref, { monthlyGoalMeals: Math.max(0, goalInput) }).catch(async () => {
-                      await setDoc(ref, { monthlyGoalMeals: Math.max(0, goalInput) }, { merge: true })
-                    })
-                  }
-                }}>Save</button>
+                <button className="btn btn-outline h-8 px-3 text-sm" onClick={saveGoalMeals}>Save</button>
               </div>
             )}
           </div>

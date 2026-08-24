@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from './Toast.jsx'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
-import { auth, db } from '../firebase'
+import { auth, db, DEMO_MODE } from '../firebase'
 import { doc, serverTimestamp, setDoc, getDoc } from 'firebase/firestore'
 
 const signupTypes = ['Donor', 'NGO']
@@ -17,7 +17,6 @@ export default function AuthModal({ open, onClose, onAuthed, initialMode = 'logi
   const [contact, setContact] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  
 
   useEffect(() => {
     if (!open) {
@@ -28,7 +27,6 @@ export default function AuthModal({ open, onClose, onAuthed, initialMode = 'logi
       setContact('')
       setEmail('')
       setPassword('')
-      
     }
     if (open) {
       setMode(initialMode || 'login')
@@ -49,6 +47,17 @@ export default function AuthModal({ open, onClose, onAuthed, initialMode = 'logi
   const handleRegister = (e) => {
     e.preventDefault()
     if (!email || !password) { alert('Please enter email and password.'); return }
+
+    // ── DEMO MODE ──
+    if (DEMO_MODE) {
+      toast('Account created successfully')
+      onAuthed?.({ uid: 'demo-uid-001', name, type, address, contact, email }, 'register')
+      onClose?.()
+      navigate('/')
+      return
+    }
+
+    // ── LIVE MODE ──
     createUserWithEmailAndPassword(auth, email, password)
       .then(async (cred) => {
         const uid = cred.user.uid
@@ -59,21 +68,29 @@ export default function AuthModal({ open, onClose, onAuthed, initialMode = 'logi
         onClose?.()
         navigate('/')
       })
-      .catch((err) => {
-        alert(err.message)
-      })
+      .catch((err) => alert(err.message))
   }
 
   const handleLogin = (e) => {
     e.preventDefault()
     if (!email || !password) { alert('Please enter email and password.'); return }
+
+    // ── DEMO MODE ──
+    if (DEMO_MODE) {
+      toast('Logged in successfully')
+      onAuthed?.({ uid: 'demo-uid-001', email, type }, 'login')
+      onClose?.()
+      navigate('/')
+      return
+    }
+
+    // ── LIVE MODE ──
     signInWithEmailAndPassword(auth, email, password)
       .then(async (cred) => {
         const uid = cred.user.uid
         const snap = await getDoc(doc(db, 'users', uid))
         const profile = snap.exists() ? snap.data() : null
         if (!profile) {
-          // create minimal profile if missing
           await setDoc(doc(db, 'users', uid), { email, type: 'Donor', createdAt: serverTimestamp() }, { merge: true })
         }
         toast('Logged in successfully')
@@ -151,7 +168,6 @@ export default function AuthModal({ open, onClose, onAuthed, initialMode = 'logi
               <label className="block text-sm font-medium mb-1">Password</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full rounded-xl border border-gray-300 px-3 py-2" placeholder="••••••••" />
             </div>
-
             <button type="submit" className="btn btn-primary w-full">Login</button>
           </form>
         )}

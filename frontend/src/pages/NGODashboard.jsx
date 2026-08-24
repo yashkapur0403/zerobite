@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { db } from '../firebase'
+import { db, DEMO_MODE } from '../firebase'
+import seedSurplus from '../data/surplus.json'
+
+const MOCK_ACCEPTED = seedSurplus.slice(0, 8).map((s, i) => ({
+  id: `mock-accepted-${i}`, donor: s.donor, location: s.location,
+  foodType: s.foodType, quantity: s.quantity, predictedSurplus: s.predictedSurplus,
+  createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+  acceptedAt: new Date(Date.now() - i * 3600000 + 600000).toISOString(),
+}))
 
 export default function NGODashboard() {
   const { user, profile } = useAuth()
-  const [accepted, setAccepted] = useState([])
+  const [accepted, setAccepted] = useState(DEMO_MODE ? MOCK_ACCEPTED : [])
 
   useEffect(() => {
+    if (DEMO_MODE) return
+
     const unsub = onSnapshot(collection(db, 'accepted'), (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setAccepted(list)
+      setAccepted(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
     return () => unsub()
   }, [])
@@ -28,9 +37,7 @@ export default function NGODashboard() {
       if (it.createdAt) return new Date(it.createdAt)
       return new Date()
     }
-    const recent = [...accepted]
-      .sort((a,b)=> toDate(b) - toDate(a))
-      .slice(0,5)
+    const recent = [...accepted].sort((a,b)=>toDate(b) - toDate(a)).slice(0,5)
     return { totalPickups, totalMeals, topFood, recent }
   }, [accepted])
 
@@ -71,7 +78,9 @@ export default function NGODashboard() {
                     <p className="font-medium text-primary-800">{r.donor} • {r.location}</p>
                     <p className="text-xs text-gray-500">{r.foodType} • Meals: {r.quantity ?? r.predictedSurplus ?? 0}</p>
                   </div>
-                  <span className="text-xs text-gray-500">{r.acceptedAt?.toDate ? r.acceptedAt.toDate().toLocaleString() : (r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : (r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'))}</span>
+                  <span className="text-xs text-gray-500">
+                    {r.acceptedAt?.toDate ? r.acceptedAt.toDate().toLocaleString() : (r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString() : (r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'))}
+                  </span>
                 </div>
               ))}
             </div>

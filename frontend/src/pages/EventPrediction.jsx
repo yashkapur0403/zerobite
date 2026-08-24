@@ -11,13 +11,13 @@ import {
 } from 'recharts'
 import { useAuth } from '../context/AuthContext.jsx'
 import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc, increment, getDocs, query, where } from 'firebase/firestore'
-import { db } from '../firebase'
+import { db, DEMO_MODE } from '../firebase'
 
 export default function EventPrediction() {
   const [invited, setInvited] = useState(0)
   const [checkedIn, setCheckedIn] = useState(0)
-  const [servingRate, setServingRate] = useState(0) // meals per minute
-  const [timeLeft, setTimeLeft] = useState(0) // minutes
+  const [servingRate, setServingRate] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(0)
   const [predicted, setPredicted] = useState(null)
   const [location, setLocation] = useState('')
   const [foodType, setFoodType] = useState('')
@@ -25,34 +25,35 @@ export default function EventPrediction() {
   const { user, profile } = useAuth()
 
   const surplus = useMemo(() => {
-    // New logic:
-    // expectedToBeServed = servingRate * timeLeft
-    // predictedSurplus = max(0, invited - (checkedIn + expectedToBeServed))
     const expectedToBeServed = servingRate * timeLeft
     const base = Math.max(0, invited - (checkedIn + expectedToBeServed))
-    const value = predicted ?? base
-    return value
+    return predicted ?? base
   }, [invited, checkedIn, servingRate, timeLeft, predicted])
 
-  const data = useMemo(() => (
-    [
-      { name: 'Guests Invited', value: invited },
-      { name: 'Guests Checked In', value: checkedIn },
-      { name: 'Predicted Surplus', value: Math.max(0, Math.round(surplus)) },
-    ]
-  ), [invited, checkedIn, surplus])
+  const data = useMemo(() => ([
+    { name: 'Guests Invited', value: invited },
+    { name: 'Guests Checked In', value: checkedIn },
+    { name: 'Predicted Surplus', value: Math.max(0, Math.round(surplus)) },
+  ]), [invited, checkedIn, surplus])
 
   const onPredict = () => {
     const expectedToBeServed = servingRate * timeLeft
-    const predictedSurplus = Math.max(0, invited - (checkedIn + expectedToBeServed))
-    setPredicted(predictedSurplus)
+    setPredicted(Math.max(0, invited - (checkedIn + expectedToBeServed)))
   }
 
   const performNotify = async () => {
     const predictedSurplus = Math.max(0, Math.round(surplus))
+
+    // ── DEMO MODE: no Firestore writes ──
+    if (DEMO_MODE) {
+      toast('NGOs near you have been notified successfully!')
+      setConfirmOpen(false)
+      return
+    }
+
+    // ── LIVE MODE ──
     try {
       const donorName = profile?.name || user?.email || 'Anonymous Donor'
-      // Upsert: try to find an existing active alert for same donor/location/foodType
       let existingId = null
       let previousPredicted = 0
       if (user?.uid) {
@@ -70,23 +71,11 @@ export default function EventPrediction() {
       }
 
       if (existingId) {
-        // Update the existing alert instead of creating a new one
-        await updateDoc(doc(db, 'surplus', existingId), {
-          quantity: predictedSurplus,
-          predictedSurplus,
-          updatedAt: serverTimestamp(),
-        })
+        await updateDoc(doc(db, 'surplus', existingId), { quantity: predictedSurplus, predictedSurplus, updatedAt: serverTimestamp() })
       } else {
-        // Create a new alert
         await addDoc(collection(db, 'surplus'), {
-          donor: donorName,
-          donorId: user?.uid || null,
-          location,
-          foodType,
-          quantity: predictedSurplus,
-          predictedSurplus,
-          status: 'Active',
-          createdAt: serverTimestamp(),
+          donor: donorName, donorId: user?.uid || null, location, foodType,
+          quantity: predictedSurplus, predictedSurplus, status: 'Active', createdAt: serverTimestamp(),
         })
       }
       if (user?.uid) {
@@ -108,14 +97,8 @@ export default function EventPrediction() {
 
   const onNotify = () => {
     const predictedSurplus = Math.max(0, Math.round(surplus))
-    if (!location || !foodType) {
-      toast('Please enter location and select food type', 'warning')
-      return
-    }
-    if (predictedSurplus <= 0) {
-      toast('Predicted surplus is 0 — nothing to notify', 'info')
-      return
-    }
+    if (!location || !foodType) { toast('Please enter location and select food type', 'warning'); return }
+    if (predictedSurplus <= 0) { toast('Predicted surplus is 0 — nothing to notify', 'info'); return }
     setConfirmOpen(true)
   }
 
@@ -156,7 +139,7 @@ export default function EventPrediction() {
               <option>Cooked Meals</option>
               <option>Dry Rations</option>
               <option>Bakery</option>
-              <option>Fruits & Veg</option>
+              <option>Fruits &amp; Veg</option>
             </select>
           </div>
         </div>
