@@ -231,7 +231,8 @@ This project is developed for educational purposes as part of SE Lab coursework.
 ## 👥 Contributors
 
 - Yash Kapur
-- Aaditya Upadhyay
+- Ishan Gupta
+- Jayesh Shandilya
 
 ## 📞 Support
 
