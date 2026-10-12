@@ -137,9 +137,9 @@ The app uses Firebase Authentication with support for:
 - Session persistence
 
 **Test Accounts:**
-- Donor: `donor@test.com` / `password123`
-- NGO: `ngo@test.com` / `password123`
-- Admin: `admin@test.com` / `password123`
+- Donor: `demo@zerobite.app` / `demo1234`
+- NGO: `ngo@zerobite.app` / `ngo1234`
+- Admin: `admin@zerobite.app` / `admin1234`
 
 ## 🌐 Deployment
 

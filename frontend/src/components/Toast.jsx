@@ -22,8 +22,15 @@ export default function Toast() {
   const styles = {
     success: 'bg-primary-600 text-white',
     info: 'bg-blue-600 text-white',
-    warning: 'bg-yellow-500 text-gray-900',
+    warning: 'bg-amber-500 text-gray-900',
     error: 'bg-red-600 text-white',
+  }
+
+  const icons = {
+    success: '✅',
+    info: 'ℹ️',
+    warning: '⚠️',
+    error: '❌',
   }
 
   return (
@@ -35,7 +42,7 @@ export default function Toast() {
             className={`pointer-events-auto rounded-xl shadow-soft px-4 py-3 w-80 max-w-[90vw] animate-toast-in ${styles[i.type] || styles.success}`}
           >
             <div className="flex items-start gap-3">
-              <span className="text-xl leading-none">✅</span>
+              <span className="text-xl leading-none">{icons[i.type] || '✅'}</span>
               <span className="text-sm font-medium">{i.message}</span>
             </div>
           </div>

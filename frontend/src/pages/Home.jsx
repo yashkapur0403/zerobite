@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Home() {
@@ -24,20 +24,20 @@ export default function Home() {
         <div className="mt-4 flex flex-wrap gap-3">
           {(type === 'Donor') && (
             <>
-              <a href="/event-prediction" className="btn btn-primary">Try Event Prediction</a>
-              <a href="/ngo-matching" className="btn btn-outline">Find NGOs</a>
+              <Link to="/donor-dashboard" className="btn btn-primary">Go to Donor Dashboard</Link>
+              <Link to="/event-prediction" className="btn btn-outline">Try Event Prediction</Link>
             </>
           )}
           {type === 'NGO' && (
             <>
-              <a href="/surplus-alerts" className="btn btn-primary">View Surplus Alerts</a>
-              <a href="/donation-history" className="btn btn-outline">Donation History</a>
+              <Link to="/ngo-dashboard" className="btn btn-primary">Go to NGO Dashboard</Link>
+              <Link to="/surplus-alerts" className="btn btn-outline">View Surplus Alerts</Link>
             </>
           )}
           {type === 'Admin' && (
             <>
-              <a href="/admin" className="btn btn-primary">Admin Dashboard</a>
-              <a href="/surplus-alerts" className="btn btn-outline">Surplus Alerts</a>
+              <Link to="/admin" className="btn btn-primary">Open Admin Console</Link>
+              <Link to="/surplus-alerts" className="btn btn-outline">Surplus Alerts</Link>
             </>
           )}
           {!type && (

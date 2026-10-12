@@ -18,6 +18,7 @@ export default function Navbar() {
   const linksForRole = (role) => {
     if (role === 'Donor') return [
       { to: '/', label: 'Home' },
+      { to: '/donor-dashboard', label: 'Donor Dashboard' },
       { to: '/event-prediction', label: 'Event Prediction' },
       { to: '/csr-dashboard', label: 'CSR Dashboard' },
       { to: '/donation-history', label: 'Donation History' },

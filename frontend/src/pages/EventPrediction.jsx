@@ -10,6 +10,7 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useData } from '../context/DataContext.jsx'
 import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc, increment, getDocs, query, where } from 'firebase/firestore'
 import { db, DEMO_MODE } from '../firebase'
 
@@ -23,6 +24,7 @@ export default function EventPrediction() {
   const [foodType, setFoodType] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const { user, profile } = useAuth()
+  const { addSurplusItem } = useData()
 
   const surplus = useMemo(() => {
     const expectedToBeServed = servingRate * timeLeft
@@ -44,9 +46,18 @@ export default function EventPrediction() {
   const performNotify = async () => {
     const predictedSurplus = Math.max(0, Math.round(surplus))
 
-    // ── DEMO MODE: no Firestore writes ──
+    // ── DEMO MODE: write to shared DataContext ──
     if (DEMO_MODE) {
-      toast('NGOs near you have been notified successfully!')
+      await addSurplusItem({
+        donor: profile?.name || user?.email || 'Arjun Mehta',
+        donorId: user?.uid || 'demo-uid-001',
+        eventName: 'Event Forecast Surplus',
+        location: location || 'Banquet Hall',
+        foodType: foodType || 'Cooked Meals',
+        quantity: predictedSurplus,
+        predictedSurplus,
+      })
+      toast('Surplus alert published! NGOs near you have been notified.', 'success')
       setConfirmOpen(false)
       return
     }
