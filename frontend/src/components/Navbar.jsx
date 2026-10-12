@@ -1,29 +1,17 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import AuthModal from './AuthModal.jsx'
 import { toast } from './Toast.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false)
-  const [modalMode, setModalMode] = useState('login')
   const navigate = useNavigate()
   const { user, profile, signOut } = useAuth()
 
-  useEffect(() => {
-    const openHandler = (e) => {
-      const mode = e?.detail?.mode === 'signup' ? 'signup' : 'login'
-      setModalMode(mode)
-      setOpen(true)
-    }
-    window.addEventListener('zb-open-auth', openHandler)
-    return () => window.removeEventListener('zb-open-auth', openHandler)
-  }, [])
 
   const onLogout = () => {
     signOut().then(() => {
       toast('Logged out successfully')
-      navigate('/')
+      navigate('/login')
     })
   }
 
@@ -42,12 +30,11 @@ export default function Navbar() {
     ]
     if (role === 'Admin') return [
       { to: '/', label: 'Home' },
+      { to: '/admin', label: 'Admin Dashboard' },
       { to: '/event-prediction', label: 'Event Prediction' },
       { to: '/ngo-matching', label: 'NGO Matching' },
-      { to: '/csr-dashboard', label: 'CSR Dashboard' },
-      { to: '/emergency', label: 'Emergency Mode' },
-      { to: '/donation-history', label: 'Donation History' },
       { to: '/surplus-alerts', label: 'Surplus Alerts' },
+      { to: '/emergency', label: 'Emergency Mode' },
     ]
     // Guest: only Home
     return [
@@ -81,15 +68,14 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                <button className="btn btn-outline h-9" onClick={() => { setModalMode('login'); setOpen(true) }}>Login</button>
-                <button className="btn btn-primary h-9" onClick={() => { setModalMode('signup'); setOpen(true) }}>Sign Up</button>
+                <button className="btn btn-outline h-9" onClick={() => navigate('/login')}>Login</button>
+                <button className="btn btn-primary h-9" onClick={() => navigate('/login')}>Sign Up</button>
               </>
             )}
           </div>
         </div>
       </div>
 
-      <AuthModal open={open} initialMode={modalMode} onClose={() => setOpen(false)} onAuthed={(u, action) => { setOpen(false); toast(action === 'register' ? 'Account created successfully' : 'Logged in successfully') }} />
 
       <div className="md:hidden border-t bg-white">
         <div className="container mx-auto px-4 py-3 grid grid-cols-2 gap-3">

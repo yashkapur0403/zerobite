@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function Home() {
   const { user, profile } = useAuth()
+  const navigate = useNavigate()
   const type = useMemo(() => profile?.type, [profile?.type])
   const isGuest = !type
   return (
@@ -34,13 +36,13 @@ export default function Home() {
           )}
           {type === 'Admin' && (
             <>
-              <a href="/surplus-alerts" className="btn btn-primary">View Surplus Alerts</a>
-              <a href="/donation-history" className="btn btn-outline">Donation History</a>
+              <a href="/admin" className="btn btn-primary">Admin Dashboard</a>
+              <a href="/surplus-alerts" className="btn btn-outline">Surplus Alerts</a>
             </>
           )}
           {!type && (
             <>
-              <button className="btn btn-primary" onClick={() => window.dispatchEvent(new CustomEvent('zb-open-auth', { detail: { mode: 'login' } }))}>Login to Get Started</button>
+              <button className="btn btn-primary" onClick={() => navigate('/login')}>Login to Get Started</button>
               <a href="#learn-more" className="btn btn-outline">Learn More About ZeroBite</a>
             </>
           )}
