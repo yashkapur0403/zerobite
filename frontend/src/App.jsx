@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
@@ -14,47 +15,64 @@ import AdminDashboard from './pages/AdminDashboard.jsx'
 import Toast, { toast } from './components/Toast.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 
+// Base authentication check
+function RequireAuth({ children }) {
+  const { user, loading } = useAuth()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      toast('Please log in to access this feature.', 'info')
+    }
+  }, [user, loading])
+
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  return children
+}
+
+// Role-based route guard
+function RequireRole({ allowedRoles, children }) {
+  const { user, profile, loading } = useAuth()
+  const userRole = profile?.type || 'Donor'
+  const isUnauthorized = !loading && user && !allowedRoles.includes(userRole)
+  const isUnauthenticated = !loading && !user
+
+  useEffect(() => {
+    if (isUnauthenticated) {
+      toast('Please log in to continue.', 'info')
+    } else if (isUnauthorized) {
+      toast(`Access restricted to ${allowedRoles.join(' / ')} accounts.`, 'warning')
+    }
+  }, [isUnauthenticated, isUnauthorized, allowedRoles])
+
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (isUnauthorized) return <Navigate to={userRole === 'Admin' ? '/admin' : '/'} replace />
+  return children
+}
+
+// Admin-only route guard
+function RequireAdmin({ children }) {
+  const { user, profile, loading } = useAuth()
+  const isNotAdmin = !loading && user && profile?.type !== 'Admin'
+  const isUnauthenticated = !loading && !user
+
+  useEffect(() => {
+    if (isUnauthenticated) {
+      toast('Please log in as administrator.', 'info')
+    } else if (isNotAdmin) {
+      toast('Administrator credentials required.', 'warning')
+    }
+  }, [isUnauthenticated, isNotAdmin])
+
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (isNotAdmin) return <Navigate to="/" replace />
+  return children
+}
+
 function App() {
   const location = useLocation()
-
-  // Base authentication check
-  const RequireAuth = ({ children }) => {
-    const { user, loading } = useAuth()
-    if (loading) return null
-    if (!user) {
-      toast('Please log in to access this feature.', 'info')
-      return <Navigate to="/login" replace />
-    }
-    return children
-  }
-
-  // Role-based route guard
-  const RequireRole = ({ allowedRoles, children }) => {
-    const { user, profile, loading } = useAuth()
-    if (loading) return null
-    if (!user) {
-      toast('Please log in to continue.', 'info')
-      return <Navigate to="/login" replace />
-    }
-    const userRole = profile?.type || 'Donor'
-    if (!allowedRoles.includes(userRole) && userRole !== 'Admin') {
-      toast(`Access restricted to ${allowedRoles.join(' / ')} accounts.`, 'warning')
-      return <Navigate to="/" replace />
-    }
-    return children
-  }
-
-  // Admin-only route guard
-  const RequireAdmin = ({ children }) => {
-    const { user, profile, loading } = useAuth()
-    if (loading) return null
-    if (!user) return <Navigate to="/login" replace />
-    if (profile?.type !== 'Admin') {
-      toast('Administrator credentials required.', 'warning')
-      return <Navigate to="/" replace />
-    }
-    return children
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
@@ -91,7 +109,7 @@ function App() {
             />
             <Route
               path="/emergency"
-              element={<RequireRole allowedRoles={['NGO']}><EmergencyMode /></RequireRole>}
+              element={<RequireRole allowedRoles={['NGO', 'Admin']}><EmergencyMode /></RequireRole>}
             />
 
             {/* Shared authenticated routes */}

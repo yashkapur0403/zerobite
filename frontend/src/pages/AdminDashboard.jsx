@@ -190,11 +190,11 @@ export default function AdminDashboard() {
                   <p className="text-gray-500 mt-0.5">Capacity ÷ Distance test</p>
                 </button>
                 <button
-                  onClick={() => navigate('/event-prediction')}
+                  onClick={() => setActiveTab('activity')}
                   className="p-3 rounded-xl border border-gray-200 text-left hover:bg-gray-50 transition"
                 >
-                  <p className="font-bold text-gray-800">⚡ Test Predictor</p>
-                  <p className="text-gray-500 mt-0.5">Event guest calculation</p>
+                  <p className="font-bold text-gray-800">📜 Audit & Logs</p>
+                  <p className="text-gray-500 mt-0.5">Platform activity telemetry</p>
                 </button>
               </div>
             </div>

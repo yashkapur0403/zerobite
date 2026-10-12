@@ -32,10 +32,6 @@ export default function Navbar() {
     if (role === 'Admin') return [
       { to: '/', label: 'Home' },
       { to: '/admin', label: 'Admin Dashboard' },
-      { to: '/event-prediction', label: 'Event Prediction' },
-      { to: '/ngo-matching', label: 'NGO Matching' },
-      { to: '/surplus-alerts', label: 'Surplus Alerts' },
-      { to: '/emergency', label: 'Emergency Mode' },
     ]
     // Guest: only Home
     return [

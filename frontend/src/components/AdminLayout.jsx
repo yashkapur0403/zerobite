@@ -100,12 +100,12 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
               Quick Shortcuts
             </p>
             <div className="space-y-1">
-              <Link
-                to="/surplus-alerts"
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-primary-700 transition"
+              <button
+                onClick={() => onTabChange('surplus')}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-primary-700 transition text-left"
               >
-                <span>🔔</span> Surplus Alerts
-              </Link>
+                <span>📡</span> Surplus Monitor
+              </button>
               <Link
                 to="/ngo-matching"
                 className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-primary-700 transition"
